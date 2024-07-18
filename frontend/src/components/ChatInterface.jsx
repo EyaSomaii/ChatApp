@@ -80,7 +80,7 @@ const ChatInterface = () => {
     Recuperer_messages();
     const socket = socketIOClient(ENDPOINT);
 
-    // Join room when a group is selected
+    // Join room
     if (selectedGroup) {
       socket.emit("joinRoom", selectedGroup._id);
     }
