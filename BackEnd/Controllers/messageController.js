@@ -6,6 +6,7 @@ const getMessages = async (req, res) => {
 
     try {
         const messages = await Message.find({ roomId }).sort({ timestamp: 1 }).populate('sender', 'username');
+        console.log(messages)
         res.json(messages);
     } catch (error) {
         res.status(500).json({ message: 'Server error' });

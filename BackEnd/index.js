@@ -10,7 +10,10 @@ const cors = require('cors');
 const userRoutes = require('./Routes/userRoutes');
 const roomRoutes = require('./Routes/roomRoutes');
 const messageRoutes = require('./Routes/messageRoutes');
+const forumRoutes = require('./Routes/ForumRoutes');
+
 const Message = require('./Models/Message');
+const Forum = require('./Models/Forum');
 
 const app = express();
 const corsOptions = {
@@ -40,6 +43,8 @@ mongoose.connect('mongodb+srv://eyasomai:0000@chatapp.kekwsyw.mongodb.net/chatAp
 app.use('/api/users', userRoutes);
 app.use('/api/rooms', roomRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/forum', forumRoutes);
+
 
 // Socket.io connection
 const io = require("socket.io")(server, {
@@ -48,9 +53,10 @@ const io = require("socket.io")(server, {
       origin: "http://localhost:3000",
     },
   });
-// Socket.io connection handling
+
+// Socket.io connection handling chat 
 io.on('connection', (socket) => {
-    console.log('New client connected');
+  //  console.log('New client connected');
   
     socket.on('joinRoom', (roomId) => {
       socket.join(roomId); // Joining specific room for group chat
@@ -70,10 +76,13 @@ io.on('connection', (socket) => {
     });
   
     socket.on('disconnect', () => {
-      console.log('Client disconnected');
+     // console.log('Client disconnected');
     });
   });
 
+
+
+  
 // Start the server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

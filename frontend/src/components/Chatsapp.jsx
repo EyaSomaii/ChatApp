@@ -1,64 +1,62 @@
-import React, { useEffect, useState } from 'react';
-import socketIOClient from 'socket.io-client';
-import axios from 'axios';
-import { Box, Flex, Stack, Button, Input, Text } from '@chakra-ui/react';
+import React, { useEffect, useState } from "react";
+import socketIOClient from "socket.io-client";
+import axios from "axios";
+import { Box, Flex, Stack, Button, Input, Text } from "@chakra-ui/react";
 
-const ENDPOINT = 'http://localhost:5000';
+const ENDPOINT = "http://localhost:5000";
 
 const Chatsapp = () => {
-  const [selectedGroup, setSelectedGroup] = useState('');
+  const [selectedGroup, setSelectedGroup] = useState("");
   const [messages, setMessages] = useState([]);
-  const [message, setMessage] = useState('');
-  const [userId, setUserId] = useState('');
-  const [username, setUsername] = useState('');
-  const [groupName, setGroupName] = useState('');
+  const [message, setMessage] = useState("");
+  const [userId, setUserId] = useState("");
+  const [username, setUsername] = useState("");
+  const [groupName, setGroupName] = useState("");
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [users, setUsers] = useState([]);
   const [rooms, setRooms] = useState([]);
-  const [roomId, setroomId] = useState('');
-  const [singleroom, setsingleroom] = useState('');
-
+  const [roomId, setroomId] = useState("");
+  const [singleroom, setsingleroom] = useState("");
 
   useEffect(() => {
-    // Fetch user info and rooms on component mount
     const fetchUserInfo = async () => {
       try {
-        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+        const userInfo = JSON.parse(localStorage.getItem("userInfo"));
         setUserId(userInfo._id);
         setUsername(userInfo.username);
-
-        const response = await axios.get(`http://localhost:5000/api/users/findAllUser/${userInfo._id}`);
+        const response = await axios.get(
+          `http://localhost:5000/api/users/findAllUser/${userInfo._id}`
+        );
         setUsers(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
-        console.error('Error fetching user info:', error);
+        console.error("Error fetching user info:", error);
       }
     };
-
+    /** get my groupes  */
     const fetchRooms = async () => {
       try {
-        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        const response = await axios.get(`http://localhost:5000/api/rooms/${userInfo._id}`);
+        const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+        const response = await axios.get(
+          `http://localhost:5000/api/rooms/${userInfo._id}`
+        );
         setRooms(Array.isArray(response.data) ? response.data : []);
       } catch (error) {
-        console.error('Error fetching rooms:', error);
+        console.error("Error fetching rooms:", error);
       }
     };
 
     fetchUserInfo();
     fetchRooms();
   }, []);
+  /** get groupe messages / specific  */
   const Recuperer_messages = async () => {
     try {
-     
-      const { data } = await axios.get(`http://localhost:5000/api/messages/${selectedGroup._id}`);
+      const { data } = await axios.get(
+        `http://localhost:5000/api/messages/${selectedGroup._id}`
+      );
       setMessages(data);
-
       socketIOClient.emit("joinRoom", selectedGroup._id);
-
-      //
-    } catch (error) {
-     
-    }
+    } catch (error) {}
   };
   useEffect(() => {
     Recuperer_messages();
@@ -66,10 +64,10 @@ const Chatsapp = () => {
 
     // Join room when a group is selected
     if (selectedGroup) {
-      socket.emit('joinRoom', selectedGroup._id);
+      socket.emit("joinRoom", selectedGroup._id);
     }
 
-    socket.on('message', (message) => {
+    socket.on("message", (message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
     });
 
@@ -79,11 +77,13 @@ const Chatsapp = () => {
   }, [selectedGroup]);
 
   const handleGroupClick = (group) => {
-    console.log(group)
+    console.log(group);
     setSelectedGroup(group);
-    const response =  axios.get(`http://localhost:5000/api/messages/${group._id}`);
+    const response = axios.get(
+      `http://localhost:5000/api/messages/${group._id}`
+    );
     setMessages(Array.isArray(response.data) ? response.data : []);
-   
+    console.log(messages);
 
     // Fetch messages for the selected group
     // Example:
@@ -91,7 +91,7 @@ const Chatsapp = () => {
   };
 
   const handleSendMessage = () => {
-    if (message.trim() !== '') {
+    if (message.trim() !== "") {
       const newMessage = {
         roomId: selectedGroup._id,
         sender: userId,
@@ -100,10 +100,10 @@ const Chatsapp = () => {
 
       // Emit message to the server
       const socket = socketIOClient(ENDPOINT);
-      socket.emit('sendMessage', newMessage);
+      socket.emit("sendMessage", newMessage);
 
       // Clear message input
-      setMessage('');
+      setMessage("");
     }
   };
 
@@ -121,7 +121,7 @@ const Chatsapp = () => {
           {rooms.map((room) => (
             <Button
               key={room._id}
-              variant={selectedGroup === room ? 'solid' : 'outline'}
+              variant={selectedGroup === room ? "solid" : "outline"}
               colorScheme="blue"
               onClick={() => handleGroupClick(room)}
             >
@@ -142,7 +142,7 @@ const Chatsapp = () => {
                 {/* Render messages here */}
                 {messages.map((msg) => (
                   <Box key={msg._id} mb={2}>
-                    <Text fontWeight="bold">{msg.sender}:</Text>
+                    <Text fontWeight="bold">{msg.sender.username}:</Text>
                     <Text>{msg.message}</Text>
                   </Box>
                 ))}

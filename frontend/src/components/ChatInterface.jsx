@@ -10,6 +10,8 @@ import {
   useDisclosure,
   VStack,
   Checkbox,
+  Avatar,
+  Heading,
 } from "@chakra-ui/react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -20,33 +22,114 @@ const ChatInterface = () => {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [messages, setMessages] = useState([]);
   const [groupesMembers, setgroupesMembers] = useState([]);
-
+  const [userId, setUserId] = useState("");
   const [message, setMessage] = useState("");
-  const [userId, setuserId] = useState("");
   const [username, setUsername] = useState("");
   const [groupName, setGroupName] = useState("");
+  const [isSelectCollectiveChat, setisSelectCollectiveChat] = useState("");
+  const [CollectiveMessages, setCollectiveMessages] = useState("");
   const [selectedUsers, setSelectedUsers] = useState([]);
-
   const [users, setUsers] = useState([]);
   const { isOpen, onOpen, onClose } = useDisclosure();
   const navigate = useNavigate();
   const [rooms, setRooms] = useState([]);
   const groups = ["Group 1", "Group 2", "Group 3"];
 
+  useEffect(() => {
+    // Fetch user info and rooms on component mount
+    const fetchUserInfo = async () => {
+      try {
+        const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+        setUserId(userInfo._id);
+        setUsername(userInfo.username);
+
+        const response = await axios.get(
+          `http://localhost:5000/api/users/findAllUser/${userInfo._id}`
+        );
+        setUsers(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error("Error fetching user info:", error);
+      }
+    };
+
+    const fetchRooms = async () => {
+      try {
+        const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+        const response = await axios.get(
+          `http://localhost:5000/api/rooms/${userInfo._id}`
+        );
+        setRooms(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        console.error("Error fetching rooms:", error);
+      }
+    };
+
+    fetchUserInfo();
+    fetchRooms();
+  }, []);
+  const Recuperer_messages = async () => {
+    try {
+      const { data } = await axios.get(
+        `http://localhost:5000/api/messages/${selectedGroup._id}`
+      );
+      setMessages(data);
+      socketIOClient.emit("joinRoom", selectedGroup._id);
+    } catch (error) {}
+  };
+  useEffect(() => {
+    Recuperer_messages();
+    const socket = socketIOClient(ENDPOINT);
+
+    // Join room when a group is selected
+    if (selectedGroup) {
+      socket.emit("joinRoom", selectedGroup._id);
+    }
+
+    socket.on("message", (message) => {
+      setMessages((prevMessages) => [...prevMessages, message]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [selectedGroup]);
+  const handleCollectivechat = () => {
+    
+    navigate("/ChatRoom");
+  };
   const handleGroupClick = (group) => {
+    console.log(group);
     setSelectedGroup(group);
+    const response = axios.get(
+      `http://localhost:5000/api/messages/${group._id}`
+    );
+    setMessages(Array.isArray(response.data) ? response.data : []);
+    console.log(messages);
+
+   
   };
 
   const handleSendMessage = () => {
-    // Logic to send message
+    if (message.trim() !== "") {
+      const newMessage = {
+        roomId: selectedGroup._id,
+        sender: userId,
+        message: message.trim(),
+      };
+
+      // Emit message to the server
+      const socket = socketIOClient(ENDPOINT);
+      socket.emit("sendMessage", newMessage);
+
+      // Clear message input
+      setMessage("");
+    }
   };
 
   useEffect(() => {
     const bb = localStorage.getItem("userInfo");
 
     const aa = bb.split(",")[0].split(":")[1].split('"')[1];
-
-    setuserId(aa);
 
     const getUsers = async () => {
       try {
@@ -104,22 +187,7 @@ const ChatInterface = () => {
     }
   };
 
-  /**end */
-  const sendMessage = () => {
-    if (message && username) {
-      const newMessage = { username, message };
-      const socket = socketIOClient(ENDPOINT);
-      socket.emit("sendMessage", newMessage);
-      setMessage("");
-    }
-  };
-
-  const toggleDrawer = () => {
-    isOpen ? onClose() : onOpen();
-  };
-  const navigatee = () => {
-    navigate("/RoomList");
-  };
+ 
   return (
     <>
       {" "}
@@ -150,29 +218,87 @@ const ChatInterface = () => {
           </VStack>
           {rooms.map((room) => (
             <Button
-              variant={selectedGroup === room.roomName ? "solid" : "outline"}
-              colorScheme="blue"
               key={room._id}
-              onClick={() => handleGroupClick(room.roomName)}
+              variant={selectedGroup === room ? "solid" : "outline"}
+              colorScheme="blue"
+              onClick={() => handleGroupClick(room)}
             >
               {room.roomName}
             </Button>
           ))}
-
-          <Button>collective chat</Button>
+          <Button   onClick={() => handleCollectivechat()} >Collective Chat</Button>
         </Stack>
-
         <Flex flex="1" flexDirection="column" p={4}>
           {selectedGroup && (
             <Flex flexDirection="column" flex="1">
               <Box mb={4}>
-                <Text fontWeight="bold">{selectedGroup} Messages</Text>
+                <Text fontWeight="bold">{selectedGroup.roomName} Messages</Text>
               </Box>
               <Box flex="1" overflowY="auto">
                 {/* Render messages here */}
+                {messages.map((msg) => (
+                  <Box key={msg._id} mb={2}>
+                    <Flex flex="1" gap="4" alignItems="center" flexWrap="wrap">
+                      <Avatar
+                        name="Segun Adebayo"
+                        src="https://bit.ly/sage-adebayo"
+                      />
+
+                      <Box>
+                        <Heading size="sm">{msg.sender.username}</Heading>
+                        <Box>
+                          <Text>{msg.message}</Text>
+                        </Box>
+                      </Box>
+                    </Flex>
+                  </Box>
+                ))}
               </Box>
               <Flex mt={4}>
-                <Input placeholder="Type your message..." />
+                <Input
+                  placeholder="Type your message..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                />
+                <Button ml={2} onClick={handleSendMessage}>
+                  Send
+                </Button>
+              </Flex>
+            </Flex>
+          )}
+
+
+{isSelectCollectiveChat && (
+            <Flex flexDirection="column" flex="1">
+              <Box mb={4}>
+               
+              </Box>
+              <Box flex="1" overflowY="auto">
+                {/* Render messages here */}
+                {CollectiveMessages.map((msg) => (
+                  <Box key={msg._id} mb={2}>
+                    <Flex flex="1" gap="4" alignItems="center" flexWrap="wrap">
+                      <Avatar
+                        name="Segun Adebayo"
+                        src="https://bit.ly/sage-adebayo"
+                      />
+
+                      <Box>
+                        <Heading size="sm">{msg.sender.username}</Heading>
+                        <Box>
+                          <Text>{msg.message}</Text>
+                        </Box>
+                      </Box>
+                    </Flex>
+                  </Box>
+                ))}
+              </Box>
+              <Flex mt={4}>
+                <Input
+                  placeholder="Type your message..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                />
                 <Button ml={2} onClick={handleSendMessage}>
                   Send
                 </Button>

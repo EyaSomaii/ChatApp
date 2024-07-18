@@ -28,7 +28,7 @@ const Login = () => {
 
       localStorage.setItem("userInfo", JSON.stringify(data));
 
-      navigate("/ChatRoom"); // Changed from 'history.push' to 'navigate'
+      navigate("/chatInterface"); // Changed from 'history.push' to 'navigate'
     } catch (error) {
       console.log("erreur");
     }
@@ -36,7 +36,12 @@ const Login = () => {
 
   return (
     <Center>
+
+      
       <Box p={4} borderWidth="1px" borderRadius="md" width="300px">
+      <br></br> 
+      <br></br> 
+      <h1>Log in </h1>
         <form onSubmit={handleSubmit}>
           <VStack spacing={4}>
             <Input
